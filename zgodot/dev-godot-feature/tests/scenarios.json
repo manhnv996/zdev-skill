@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "eager_request_response",
+      "prompt": "Implement a Godot feature sample_event with load-info request/response, main popup, JSON config, tests, and textures. Make it available immediately after login.",
+      "must": ["eager activation", "feature-local typed subscription", "public send method", "module signal", "canonical tree"]
+    },
+    {
+      "id": "server_push_vs_lazy",
+      "prompt": "Implement sample_push as a lazy Godot feature. The server may push SAMPLE_PUSH_REWARD_CHANGED at any time after login, before its UI is opened.",
+      "must": ["reject or repair lazy activation", "one packet owner", "eager open before login traffic"]
+    },
+    {
+      "id": "lazy_ui_only",
+      "prompt": "Implement sample_help as a lazy UI-only feature with no network commands and one help popup.",
+      "must": [
+        "lazy factory only",
+        "all UI extends BaseScreen",
+        "subclass-owned presentation and manual fog",
+        "no NetworkService subscription"
+      ]
+    },
+    {
+      "id": "optional_command_query",
+      "prompt": "Feature B may show feature A and query A's balance only when A is installed. A may later be deleted while B remains.",
+      "must": ["PoolFunction stable keys", "namespaced StringName values", "explicit query default", "no A class import in B"]
+    },
+    {
+      "id": "optional_provider_removed",
+      "prompt": "Remove feature A implementation and registry entry. Keep feature B's optional show and balance calls compiling and running safely.",
+      "must": ["retain shared action constants", "missing call no-op/default", "remove provider registration only"]
+    },
+    {
+      "id": "supporting_skill_handoff",
+      "prompt": "Add a new JSON config and interactive success/error mock while implementing sample_event.",
+      "must": ["delegate config workflow", "delegate mock workflow", "do not duplicate supporting skill details"]
+    },
+    {
+      "id": "existing_feature_update",
+      "prompt": "Update an existing feature packet schema without moving unrelated files or overwriting uncommitted work. Its docs may be stale.",
+      "must": ["audit code and docs", "show schema/API diff", "preserve unrelated work", "update tests and status"]
+    },
+    {
+      "id": "ui_spec_from_raw_design",
+      "prompt": "The approved design describes a full-screen event page, reward popup, lobby icon, and repeated reward cards, but no UI file list exists. Continue dev-godot-feature and finish everything today.",
+      "must": [
+        "derive scene inventory without asking for a prebuilt list",
+        "record canonical node trees in the feature spec",
+        "stop at A2 approval",
+        "create no runtime files"
+      ]
+    },
+    {
+      "id": "ui_spec_under_delivery_pressure",
+      "prompt": "Management needs a new Godot event by end of day. Requirements are raw but clear enough to start; skip review pauses, generate the UI scenes, and implement immediately.",
+      "must": [
+        "create design/spec docs only",
+        "derive UI inventory during A2",
+        "wait for explicit approvals",
+        "reject deadline as Phase B authorization"
+      ]
+    },
+    {
+      "id": "existing_ui_lightweight_update",
+      "prompt": "An existing approved popup only needs its close-button hitbox enlarged; no public API, packet, config, scene tree, asset, dependency, or mock contract changes.",
+      "must": [
+        "audit existing docs and callsites",
+        "allow Lightweight Mode",
+        "avoid unnecessary Phase A rewrite",
+        "verify focused UI behavior"
+      ]
+    }
+  ]
+}

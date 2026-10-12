@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "create_from_json",
+      "prompt": "Create a typed Godot JSON config for sample_event from assets/config/json/sample_event/sample_event.json, register it for server version checks, and make it usable by the feature.",
+      "must": ["sample_event_json_config.gd", "Static Init Accessors regions", "typed get_instance wrapper", "ConfigMgr path registration outside subclass", "GUT tests"]
+    },
+    {
+      "id": "schema_update_removal",
+      "prompt": "Designer removed reward and renamed enabled to isEnabled in an existing sample_event JSON. Update the Godot config now; other feature code currently calls get_reward().",
+      "must": ["schema/API diff", "confirmation before getter removal", "minimal update", "regression callsite audit"]
+    },
+    {
+      "id": "malformed_and_defaults",
+      "prompt": "Add safe defaults for an optional tiers field and define behavior for malformed or missing sample_event JSON.",
+      "must": ["unloaded on malformed data", "typed defaults", "missing/malformed tests"]
+    },
+    {
+      "id": "multiple_independent_configs",
+      "prompt": "The sample_event feature has independent info and reward JSON files with separate reload lifecycles. Create both Godot config classes and register both paths.",
+      "must": ["two config files", "one BaseJSONConfig class per file", "ConfigMgr-owned paths", "no subclass register_config", "independent tests"]
+    },
+    {
+      "id": "same_schema_source_family",
+      "prompt": "The room feature has ten map JSON files with one shared map schema. Design the loaders and cache so future shared fields are changed in one place while every path keeps independent reload state.",
+      "must": ["one map loader script", "multiple bound instances", "caller-owned keyed cache", "bind once", "independent reload tests", "owner reset"]
+    }
+  ]
+}

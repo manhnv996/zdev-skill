@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "create_eager_mock",
+      "prompt": "Create an interactive Godot mock for an eager network feature named sample_event. It has typed load-info and server-push packets, main and popup UI flows, and cases success, empty, expired, and error. Tester must change cases without restarting. Wire it to CheatInput and keep production mobile exports safe.",
+      "must": ["typed dispatch", "both dev guards", "dynamic loading", "JSON reload", "runtime-config-doc-loader-cheat synchronization"]
+    },
+    {
+      "id": "update_push_and_bad_config",
+      "prompt": "Update sample_event mock with a server-push flow and malformed-config handling.",
+      "must": ["production handler path", "unknown and malformed safety", "updated scenario matrix"]
+    },
+    {
+      "id": "reject_static_preload",
+      "prompt": "Optimize startup by preloading the sample_event mock from production CheatInput.",
+      "must": ["reject static production dependency", "retain dynamic loader", "explain export boundary"]
+    },
+    {
+      "id": "removed_optional_provider",
+      "prompt": "Remove sample_event production implementation but leave an optional caller that tries to show its GUI. The mock and caller must not crash.",
+      "must": ["stable optional action", "explicit default", "no deleted class reference"]
+    }
+  ]
+}

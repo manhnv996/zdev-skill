@@ -1,0 +1,23 @@
+{
+  "valid": {
+    "featureId": "sample_event",
+    "activation": "eager",
+    "hasServerPush": true
+  },
+  "invalidArguments": [
+    {"id": "bad_feature_id", "featureId": "SampleEvent", "code": "invalid_feature_id"}
+  ],
+  "invalidContracts": [
+    {"id": "missing_module", "remove": "module", "code": "missing_module"},
+    {"id": "lazy_push_owner", "activation": "lazy", "hasServerPush": true, "code": "lazy_push_owner"},
+    {"id": "ui_subscribes_network", "inject": "ui_network_subscribe", "code": "network_outside_module"},
+    {"id": "ui_wrong_base", "inject": "ui_wrong_base", "code": "ui_not_base_screen"},
+    {"id": "missing_cleanup", "inject": "remove_destroy_cleanup", "code": "missing_owner_cleanup"},
+    {"id": "unnamespaced_optional_key", "inject": "bad_optional_key", "code": "unnamespaced_action"},
+    {"id": "query_without_default", "inject": "missing_query_default", "code": "missing_optional_default"},
+    {"id": "missing_registration", "remove": "registry_entry", "code": "missing_registration"},
+    {"id": "missing_eager_open", "remove": "registry_open", "code": "missing_eager_open"},
+    {"id": "lazy_opened_eagerly", "activation": "lazy", "hasServerPush": false, "inject": "registry_open", "code": "lazy_eager_open"},
+    {"id": "missing_tests", "remove": "tests", "code": "missing_tests"}
+  ]
+}

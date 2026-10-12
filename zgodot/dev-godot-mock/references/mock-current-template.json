@@ -1,0 +1,13 @@
+{
+  "feature": "sample_event",
+  "caseId": "success",
+  "flowId": "main",
+  "options": {},
+  "_help": "Edit caseId/flowId/options, save, then press the assigned dev key.",
+  "_validCases": ["success", "empty", "expired", "error"],
+  "_validFlows": ["main", "popup"],
+  "_fieldNotes": {
+    "caseId": "One value from _validCases.",
+    "flowId": "One value from _validFlows."
+  }
+}
