@@ -1,11 +1,11 @@
 # Reference — Mock File Templates
 
 Reference bắt buộc cho `dev-mock`. Đọc toàn bộ file này trước khi tạo hoặc sửa
-`mock-current.json` / `{Feature}Mock.js`.
+`mock-default.json` / `{Feature}Mock.js` / `devmock-index.json`.
 
-Đây là source chuẩn cho cấu trúc 2 file runtime. Các rule quyết định (3 mục đích, 4 tầng ưu
-tiên, quy ước `flowId`, chọn field cho `data`) nằm trong `SKILL.md` — reference này chỉ là
-khuôn để copy.
+Đây là source chuẩn cho cấu trúc các file runtime trong `simulator/devmock/`. Các rule quyết định
+(3 mục đích, 4 tầng ưu tiên, quy ước `flowId`, chọn field cho `data`) nằm trong `SKILL.md` —
+reference này chỉ là khuôn để copy.
 
 Các điểm không được bỏ dù đã đọc reference:
 
@@ -13,11 +13,46 @@ Các điểm không được bỏ dù đã đọc reference:
   và `Cheat.js` là file dùng chung với mock của feature khác. Đọc `dataId` từ `options`.
 - `_pick()` phải đủ **4 tầng** theo đúng thứ tự, và dùng `!= null` chứ không phải truthy.
 - Mỗi `cmdReceive*` trong Module phải có đúng **1 case** trong `runFlow`, đặt đúng tên handler.
-- `mock-current.json` phải giữ **dòng trống phân nhóm param**; không generate bằng `json.dumps`.
+- `mock-default.json` phải giữ **dòng trống phân nhóm param**; không generate bằng `json.dumps`.
+- Thêm feature mới = thêm entry vào `devmock-index.json`, **không** sửa `Cheat.js`.
 
 ---
 
-## Template — `mock-current.json`
+## Template — `devmock-index.json`
+
+`simulator/devmock/devmock-index.json` — một entry cho mỗi feature. `script` là đường dẫn tương đối
+với `simulator/devmock/`; config (`mock-current.json` / `mock-default.json`) nằm **cùng thư mục** với
+script. Key là tên feature truyền vào `DevMockLoader.runFromConfig("{feature}")` và field `"feature"`.
+
+```json
+{
+  "features": {
+    "heistevent": {
+      "script": "heistevent/HeistEventMock.js",
+      "exportName": "HeistEventMock"
+    },
+    "{feature}": {
+      "script": "{feature}/{Feature}Mock.js",
+      "exportName": "{Feature}Mock"
+    }
+  }
+}
+```
+
+Chỉ thêm entry mới, không sửa entry của feature khác. Giữ nguyên line ending sẵn có của file.
+
+`"panel": true` (hiện feature trên panel device — icon `M`) **chỉ thêm khi làm Phase 2** theo yêu cầu user,
+xem [device-ui.md](device-ui.md). Phase 1 không có key này.
+
+## Template — `mock-default.json`
+
+`simulator/devmock/{feature}/mock-default.json` — **git track**. Tester không sửa file này: copy nó
+thành `mock-current.json` cùng thư mục (gitignore) rồi sửa bản copy. Loader đọc `mock-current.json`
+trước, không có mới đọc `mock-default.json`.
+
+Giá trị trong default phải là **trạng thái mặc định hợp lý**, không phải trạng thái test dở của ai đó:
+`dataOverride: false`, không có `"reloadScript": true`, `dataId` / `flowId` là kịch bản cơ bản
+(thường dataId đang chạy bình thường + flow LOAD_INFO).
 
 Giữ dòng trống phân nhóm param; mất nó là tester nhìn một khối liền khó tìm. **Không** generate file này bằng `json.dumps` — nó chỉ giữ dữ liệu, không giữ bố cục.
 
@@ -90,7 +125,13 @@ Giữ dòng trống phân nhóm param; mất nó là tester nhìn một khối l
 }
 ```
 
+`_dataOptions` (danh sách giá trị cho field rời rạc trên panel device) **chỉ thêm khi làm Phase 2** — khuôn ở
+[device-ui.md](device-ui.md).
+
 ## Template — `{Feature}Mock.js`
+
+Viết kiểu `var` + `function` như khuôn dưới — **không** `const` / `let` / arrow (file nạp bằng `eval` trên
+SpiderMonkey 33, trùng tên `const` trong 1 hàm là lỗi cú pháp cả file). Closure trong vòng lặp tách ra hàm riêng.
 
 ```js
 var {Feature}Mock = (typeof {Feature}Mock !== "undefined") ? {Feature}Mock : {};

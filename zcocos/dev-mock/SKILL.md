@@ -1,7 +1,7 @@
 ---
 name: dev-mock
 description: Use when creating or updating BidaMobile dev-only fake data, mock test cases, mock flows, Cheat.js triggers, or QA flows for Cocos2d-x JS features/events without packing mock code into project.json, CDN, or APK.
-argument-hint: "[tên feature | docs/modules/{feature} | src feature folder]"
+argument-hint: "[tên feature | simulator/devmock/{feature} | docs/modules/{feature} | src feature folder]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
@@ -25,11 +25,15 @@ Mục 1 là **bắt buộc và đầy đủ**: feature có bao nhiêu `cmdReceiv
 
 ## Core Contract
 
-- Runtime mock nằm trong `docs/modules/{feature}/mock/runtime/`, không nằm trong `src/game/...`.
+- Runtime mock nằm **một chỗ duy nhất** `simulator/devmock/{feature}/` (git track), không nằm trong `src/game/...` và không trong `docs/` (`docs` bị gitignore — máy build / người khác không có file).
+- Đăng ký feature bằng entry trong `simulator/devmock/devmock-index.json` (`script` + `exportName`). **Không** sửa `Cheat.js` để thêm mock — `Cheat.js` chỉ giữ `DevMockLoader` + phím trigger.
 - Không thêm mock runtime/config vào `project.json`.
-- `Cheat.js` chỉ giữ loader/trigger mỏng; không chứa scenario data dài.
-- `mock-current.json` là file tester sửa hằng ngày. Bấm phím cheat sẽ đọc lại config mới nhất.
+- Config tách 2 file cùng thư mục script:
+  - `mock-default.json` — **git track**: danh sách flow / dataId / field + note + giá trị mặc định hợp lý.
+  - `mock-current.json` — **gitignore** (`/simulator/devmock/**/mock-current.json`), file tester sửa hằng ngày; tạo bằng cách copy `mock-default.json`. Loader đọc `mock-current.json` trước, không có thì `mock-default.json`. Bấm phím cheat sẽ đọc lại config mới nhất.
+- Loader chạy khi `gc.SERVER_ID != 2` và tìm thấy index (`simulator/devmock/` trên win32, `devmock/` trong gói dev). Phím trigger hiện chỉ đăng ký ở `SERVER_ID 0`.
 - Mock JS chỉ load khi object mock chưa tồn tại; muốn reload JS trong app đang chạy thì thêm `"reloadScript": true` vào config tạm thời.
+- **Mock JS viết kiểu `var` + `function`**: không `const` / `let` / arrow. File được nạp bằng `eval` trên SpiderMonkey 33 của JSB — `const` có phạm vi cả hàm, 2 khối khai báo cùng tên `const` là lỗi cú pháp làm hỏng **cả file** (loader chỉ log `eval failed`, không chạy gì). Closure tạo trong vòng lặp thì tách ra hàm riêng (biến `var` trong vòng lặp dùng chung cả hàm).
 - **Mock không chép lại các bước của handler.** Dựng gói tin giả rồi gọi thẳng `Module.cmdReceiveXxx()`. Chép là mỗi lần handler đổi thì mock lệch, và thứ đang test không còn là code thật.
 - **Mốc thời gian trong mock cũng theo server.** "Bây giờ" lấy từ `PoolFunction.SERVER_TIME` — chưa có thì log rồi bỏ qua, **không** fallback `Date.now()`. Mốc theo ngày (0h, cuối ngày) tính theo giờ server UTC+7, không dùng `new Date().setHours()`. Code thật đọc giờ server; mock dựng theo giờ máy sẽ tự tạo ra data lệch với chính code đang test.
 
@@ -43,8 +47,11 @@ Không dùng cho unit test tự động hoặc server integration test thật.
 
 | Failure | Correct shape |
 |---------|---------------|
-| Fake data đặt thẳng trong `Cheat.js` | Data nằm trong `{Feature}Mock.js` dưới `docs/.../mock/runtime/` |
+| Fake data đặt thẳng trong `Cheat.js` | Data nằm trong `{Feature}Mock.js` dưới `simulator/devmock/{feature}/` |
 | Mock file đặt trong `src/` và thêm vào `project.json` | Runtime mock không đăng ký `project.json` |
+| Runtime mock để trong `docs/.../mock/runtime/` | `docs` bị gitignore → build / người khác không có file. Đặt ở `simulator/devmock/{feature}/` |
+| Thêm entry `_entries` trong `Cheat.js` | Thêm entry vào `simulator/devmock/devmock-index.json`; `Cheat.js` dùng chung, không sửa |
+| Commit `mock-current.json` | Chỉ track `mock-default.json`; `mock-current.json` là file local đã gitignore |
 | Đổi case phải restart app | Sửa `mock-current.json`, save, bấm phím cheat |
 | Thiếu flow cho một số gói tin | Mỗi `cmdReceive*` trong Module phải có đúng 1 flow |
 | Nhóm data chỉ chứa cờ trạng thái, số liệu để chung một bộ | Nhóm data phải là **bộ data hoàn chỉnh**, đổi tên nhóm là thấy đổi |
@@ -53,18 +60,25 @@ Không dùng cho unit test tự động hoặc server integration test thật.
 | `data` liệt kê mọi field làm tester rối | Chỉ giữ field có **giá trị liên tục cần quét ngưỡng** |
 | Mock chép lại các bước của handler | Gọi thẳng `Module.cmdReceiveXxx()` với gói tin giả |
 | Mock dựng mốc thời gian bằng `Date.now()` / `new Date().setHours()` | `SERVER_TIME` + tính mốc ngày theo UTC+7, ví dụ 0h kế tiếp: `(Math.floor((t + 7h) / DAY) + 1) * DAY - 7h` |
+| Mock JS dùng `const` / `let` / arrow | Kiểu `var` + `function` — `eval` trên SpiderMonkey 33 lỗi cả file khi trùng tên `const` |
+| Tự làm UI device (bật `"panel"`, `_dataOptions`) khi user chưa yêu cầu | Mặc định chỉ Phase 1; Phase 2 chỉ khi được yêu cầu (mục "UI test trên device") |
 
 ## File Layout
 
 ```
-docs/modules/{feature}/mock/
-├── {feature}-mock.md              ← doc cho tester
-└── runtime/
-    ├── {Feature}Mock.js           ← logic, KHÔNG vào project.json
-    └── mock-current.json          ← tester sửa hằng ngày
+simulator/devmock/
+├── devmock-index.json             ← track: danh sách feature (script + exportName [+ "panel": true nếu làm Phase 2])
+├── DevMockPanel.js                ← track: UI panel dùng chung mọi feature (Phase 2) — KHÔNG sửa khi tạo mock
+└── {feature}/
+    ├── {feature}-mock.md          ← track: doc cho tester (scenario matrix, quy tắc nạp lại)
+    ├── {Feature}Mock.js           ← track: logic, KHÔNG vào project.json
+    ├── mock-default.json          ← track: flow / dataId / field + note + giá trị mặc định
+    └── mock-current.json          ← GITIGNORE: bản local tester sửa hằng ngày (copy từ default)
 ```
 
-`{feature}` là docs id, ví dụ `battlepass`. `{Feature}Mock` là object runtime, ví dụ `BattlePassCustomMock`.
+Doc tester nằm cùng thư mục mock (không để trong `docs/` — gitignore) để người pull code về có hướng dẫn.
+
+`{feature}` là docs id kiêm key trong index, ví dụ `battlepass`. `{Feature}Mock` là object runtime, ví dụ `BattlePassCustomMock`.
 
 ## 4 tầng ưu tiên của data
 
@@ -108,20 +122,32 @@ Bỏ field khỏi `data` **không** mất khả năng ghi đè — `DEFAULTS` v�
 
 ## Workflow
 
-1. Resolve scope: docs path, runtime source folder, mock object name, entry key trong `DevMockLoader._entries`.
+1. Resolve scope: thư mục mock `simulator/devmock/{feature}/` (runtime + doc tester), mock object name, key trong `devmock-index.json`.
 2. Đọc code thật:
    - **Liệt kê đủ `cmdReceive*` trong Module** → đây là danh sách flow nhóm 1, không được thiếu.
    - Tìm `Util.reset`, `Model.reset`, state cần set.
    - Tìm `PoolFunction.*SHOW*`, flow popup/gui/action cần test.
    - Tìm flow nào có tiền đề cố định → vào `FLOW_FORCE`.
 3. Đề xuất scenario matrix trước khi code: `dataId`, `flowId`, expected UI, user verify. Hỏi confirm nếu chưa rõ.
-4. **Đọc [references/file-templates.md](references/file-templates.md)**, rồi tạo `{feature}-mock.md`, `{Feature}Mock.js`, `mock-current.json` theo đúng khuôn đó.
-5. Wire `Cheat.js`: thêm entry `{feature}: { path, configPath, exportName }`, key dev gọi `DevMockLoader.runFromConfig("{feature}")`.
-6. Khi thêm `dataId`/`flowId` vào mock đã có, **cập nhật đủ 3 nơi trong cùng lượt**: `{Feature}Mock.js`, `mock-current.json` (`_validDataIds`/`_validFlowIds` + note), `{feature}-mock.md` (bảng flow + scenario matrix).
+4. **Đọc [references/file-templates.md](references/file-templates.md)**, rồi tạo `{feature}-mock.md`, `{Feature}Mock.js`, `mock-default.json` theo đúng khuôn đó; copy `mock-default.json` thành `mock-current.json` local để test ngay.
+5. Wire: thêm entry `"{feature}": { "script": "{feature}/{Feature}Mock.js", "exportName": "{Feature}Mock" }` vào `simulator/devmock/devmock-index.json`. **Không** sửa `Cheat.js` — trừ khi cần đổi phím trigger (`m` / `n` gọi `DevMockLoader.runFromConfig("{feature}")`); không đổi phím thì tester chuyển feature bằng field `"feature"` trong config của feature đang gắn phím.
+6. Khi thêm `dataId`/`flowId` vào mock đã có, **cập nhật đủ 3 nơi trong cùng lượt**: `{Feature}Mock.js`, `mock-default.json` (`_validDataIds`/`_validFlowIds` + note), `{feature}-mock.md` (bảng flow + scenario matrix). `mock-current.json` local của tester không cần sửa — nhắc tester copy lại từ default nếu muốn thấy note mới.
+7. Dừng ở Phase 1 (test bằng phím). Cuối output được **đề xuất 1 dòng** Phase 2, không tự làm — xem mục dưới.
+
+## UI test trên device (Phase 2 — chỉ khi được yêu cầu)
+
+Mặc định **không** làm. Chỉ làm khi prompt yêu cầu test mock trên device / dùng panel (icon `M`), hoặc user đồng ý
+với đề xuất 1 dòng ở cuối output Phase 1, ví dụ:
+
+> Muốn test trên device (icon `M` + panel trong bản dev) thì mình bật panel cho feature này — chỉ cần thêm cờ index + `_dataOptions`.
+
+Khi làm thì **đọc [references/device-ui.md](references/device-ui.md)** (không đọc khi không có yêu cầu). Hạ tầng
+(hook, loader, `DevMockPanel.js`, đóng gói `cdn.json` dev) đã có sẵn — mỗi feature chỉ thêm `"panel": true` trong
+index, `_dataOptions` trong `mock-default.json` và mục doc tester; không sửa `DevMockPanel.js` / `Cheat.js` / `ScreenMgr.js`.
 
 ## Template 2 file runtime
 
-Trước khi tạo hoặc sửa `mock-current.json` / `{Feature}Mock.js`, **bắt buộc đọc toàn bộ**
+Trước khi tạo hoặc sửa `mock-default.json` / `{Feature}Mock.js` / `devmock-index.json`, **bắt buộc đọc toàn bộ**
 [references/file-templates.md](references/file-templates.md). Đó là source chuẩn cho cấu trúc
 2 file đó.
 
@@ -131,7 +157,7 @@ Các guard không được bỏ qua dù đã đọc reference:
   `Cheat.js` — file dùng chung với mock của feature khác.
 - `_pick()` đủ 4 tầng theo đúng thứ tự, dùng `!= null` chứ không phải truthy.
 - Mỗi `cmdReceive*` trong Module có đúng 1 case trong `runFlow`, đặt đúng tên handler.
-- `mock-current.json` giữ dòng trống phân nhóm param; không generate bằng `json.dumps`.
+- `mock-default.json` giữ dòng trống phân nhóm param; không generate bằng `json.dumps`.
 
 ## Hai quy tắc nạp lại — phải ghi trong doc
 
@@ -140,6 +166,8 @@ Thiếu hai dòng này là tester sửa xong không thấy gì đổi và tưở
 | Sửa gì | Cần làm gì |
 |---|---|
 | `mock-current.json` | Không cần gì — bấm phím cheat là đọc lại |
+| `mock-default.json` (máy chưa có `mock-current.json`) | Không cần gì — loader tự đọc bản default, bấm phím là có hiệu lực |
+| `devmock-index.json` | Không cần gì — loader đọc lại index mỗi lần bấm |
 | `{Feature}Mock.js` | Thêm tạm `"reloadScript": true`. Loader cache object mock trong bộ nhớ |
 | File trong `src/` | **Khởi động lại app** — nằm trong `project.json`, nạp lúc boot |
 
@@ -147,10 +175,12 @@ Ngoài ra nếu mock gọi `Util.reset()` mỗi lần chạy, kiểm tra xem `re
 
 ## Verify
 
-- `node --check src/gamemgr/Cheat.js`
-- `node --check docs/modules/{feature}/mock/runtime/{Feature}Mock.js`
-- Parse `mock-current.json` bằng `JSON.parse`.
-- `rg "{Feature}Mock|mock-current|docs/modules/{feature}/mock" project.json` phải không có match.
+- `node --check simulator/devmock/{feature}/{Feature}Mock.js` (và `src/gamemgr/Cheat.js` nếu có đổi phím).
+- Mock JS không có `const` / `let` / `=>` ngoài comment — quét bằng regex (`node --check` không bắt được lỗi riêng của SpiderMonkey 33).
+- Parse `mock-default.json`, `mock-current.json` (nếu có) và `devmock-index.json` bằng `JSON.parse`.
+- Entry index trỏ đúng file: `simulator/devmock/` + `script` tồn tại, `exportName` khớp `var {Feature}Mock` trong file.
+- `git check-ignore simulator/devmock/{feature}/mock-current.json` → bị ignore; `git check-ignore simulator/devmock/{feature}/mock-default.json` → **không** bị ignore.
+- `rg "{Feature}Mock|mock-current|mock-default|devmock" project.json` phải không có match.
 - **Mỗi `cmdReceive*` trong Module có đúng 1 case trong `runFlow`** — quét bằng regex, không đếm tay.
 - Mọi `dataId` trong `DATA_GROUPS` có mặt trong `_validDataIds` và trong doc.
 - Mọi `flowId` trong `_validFlowIds` có case thật trong `runFlow` và có trong doc.
@@ -161,7 +191,11 @@ Ngoài ra nếu mock gọi `Util.reset()` mỗi lần chạy, kiểm tra xem `re
 ## Common Mistakes
 
 - Dùng comment `//` trong JSON làm `JSON.parse` lỗi. Dùng key `_help`, `_validDataIds`.
-- Generate `mock-current.json` bằng `json.dumps` → mất hết dòng trống phân nhóm. Viết tay hoặc chỉ sửa đúng chuỗi cần đổi.
+- Generate `mock-default.json` bằng `json.dumps` → mất hết dòng trống phân nhóm. Viết tay hoặc chỉ sửa đúng chuỗi cần đổi.
+- Quên thêm entry vào `devmock-index.json` → bấm phím chỉ log `missing entry in devmock-index.json`.
+- Viết mock JS bằng `const` / `let` / arrow như code `src/` → `eval` lỗi cả file trên JSB, bấm phím chỉ thấy `eval failed`.
+- Tự bật `"panel": true` / thêm `_dataOptions` khi user chưa yêu cầu test trên device.
+- Commit `mock-current.json`, hoặc để cờ tạm (`"reloadScript": true`, ghi đè cá nhân) lọt vào `mock-default.json`.
 - Thêm `dataId`/`flowId` mà quên cập nhật `_validDataIds`/`_validFlowIds` hoặc doc.
 - Để note trên đầu JSON làm tester khó thấy field cần sửa. Field điều khiển phải ở trên cùng, note `_*` ở dưới.
 - Reload/eval mock JS mỗi lần bấm phím khi chỉ cần đổi data. Mặc định chỉ đọc lại JSON.
